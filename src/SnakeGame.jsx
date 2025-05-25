@@ -61,8 +61,8 @@ const SnakeGame = () => {
     const moveSnake = useCallback(() => {
         if (gameState !== 'playing') return;
 
-        setSnake(currentSnake => {
-            const newSnake = [...currentSnake];
+        const newSnake = (() => {
+            const newSnake = [...snake];
             const head = {...newSnake[0]};
 
             head.x += direction.x;
@@ -74,7 +74,7 @@ const SnakeGame = () => {
                 if (score > highScore) {
                     setHighScore(score);
                 }
-                return currentSnake;
+                return snake;
             }
 
             // Check self collision
@@ -83,7 +83,7 @@ const SnakeGame = () => {
                 if (score > highScore) {
                     setHighScore(score);
                 }
-                return currentSnake;
+                return snake;
             }
 
             newSnake.unshift(head);
@@ -97,9 +97,11 @@ const SnakeGame = () => {
             }
 
             return newSnake;
-        });
+        })();
+
+        setSnake(newSnake);
         arrowKeyProcessingRef.current = null;
-    }, [gameState, direction.x, direction.y, food.x, food.y, score, highScore, generateFood]);
+    }, [gameState, snake, direction.x, direction.y, food.x, food.y, score, highScore, generateFood]);
 
     const changeDirection = useCallback((key) => {
         switch (key) {
@@ -245,7 +247,7 @@ const SnakeGame = () => {
                 onSwipeRight={() => changeDirection('ArrowRight')}
                 onDoubleTap={togglePause}
             >
-                <div className="relative mb-6">
+                <div className="relative mb-4">
                     <div
                         className="grid gap-0 border-4 border-lime-400 bg-gray-900 shadow-2xl"
                         style={{
@@ -261,13 +263,6 @@ const SnakeGame = () => {
                         <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
                             <div className="text-center">
                                 <div className="text-3xl font-bold text-yellow-400 mb-2">PAUSED</div>
-                                <div className="text-lg text-white mb-4">Press SPACE or click PAUSE to resume</div>
-                                <button
-                                    onClick={togglePause}
-                                    className="px-6 py-2 bg-yellow-400 text-black font-bold hover:bg-yellow-300 transition-colors border-2 border-yellow-600 shadow-lg"
-                                >
-                                    RESUME
-                                </button>
                             </div>
                         </div>
                     )}
@@ -299,7 +294,6 @@ const SnakeGame = () => {
                                 >
                                     START GAME
                                 </button>
-                                <div className="text-sm text-gray-400">Use arrow keys to control the snake</div>
                             </div>
                         </div>
                     )}
@@ -308,9 +302,11 @@ const SnakeGame = () => {
 
             {/* Controls */}
             <div className="text-center">
-                <div className="text-gray-400 mb-4">
-                    Use <span className="text-white">ARROW KEYS</span> to move • Press <span
-                    className="text-white">SPACE</span> to pause
+                <div className="text-gray-400 mb">
+                    PC: <span className="text-white">ARROW KEYS</span> to move • <span className="text-white">SPACE</span> to pause
+                </div>
+                <div className="text-gray-400 mb-2">
+                    Mobile: <span className="text-white">SWIPE</span> to move • <span className="text-white">DOUBLE TAP</span> to pause
                 </div>
                 <div className="flex gap-2 justify-center">
                     <button
