@@ -1,4 +1,5 @@
 import {useCallback, useEffect, useRef, useState} from 'react';
+import SwipeHandler from "./SwipeHandler.jsx";
 
 const GRID_SIZE = 20;
 const INITIAL_SNAKE = [{x: 10, y: 10}];
@@ -89,7 +90,7 @@ const SnakeGame = () => {
 
             // Check food collision
             if (head.x === food.x && head.y === food.y) {
-                setScore(prev => prev + 10);
+                setScore(prev => prev + 1);
                 setFood(generateFood());
             } else {
                 newSnake.pop();
@@ -97,7 +98,25 @@ const SnakeGame = () => {
 
             return newSnake;
         });
+        arrowKeyProcessingRef.current = null;
     }, [gameState, direction.x, direction.y, food.x, food.y, score, highScore, generateFood]);
+
+    const changeDirection = useCallback((key) => {
+        switch (key) {
+            case 'ArrowUp':
+                if (direction.y !== 1) setDirection({x: 0, y: -1});
+                break;
+            case 'ArrowDown':
+                if (direction.y !== -1) setDirection({x: 0, y: 1});
+                break;
+            case 'ArrowLeft':
+                if (direction.x !== 1) setDirection({x: -1, y: 0});
+                break;
+            case 'ArrowRight':
+                if (direction.x !== -1) setDirection({x: 1, y: 0});
+                break;
+        }
+    }, [direction.x, direction.y]);
 
     const handleKeyDown = useCallback((e) => {
         // Handle pause with spacebar
@@ -113,39 +132,13 @@ const SnakeGame = () => {
         e.preventDefault();
         if (arrowKeyProcessingRef.current) return;
         arrowKeyProcessingRef.current = e.key;
-        switch (e.key) {
-            case 'ArrowUp':
-                if (direction.y !== 1) setDirection({x: 0, y: -1});
-                break;
-            case 'ArrowDown':
-                if (direction.y !== -1) setDirection({x: 0, y: 1});
-                break;
-            case 'ArrowLeft':
-                if (direction.x !== 1) setDirection({x: -1, y: 0});
-                break;
-            case 'ArrowRight':
-                if (direction.x !== -1) setDirection({x: 1, y: 0});
-                break;
-        }
-    }, [direction.x, direction.y, gameState, togglePause]);
+        changeDirection(e.key);
+    }, [changeDirection, gameState, togglePause]);
 
     useEffect(() => {
         document.addEventListener('keydown', handleKeyDown);
         return () => document.removeEventListener('keydown', handleKeyDown);
     }, [handleKeyDown]);
-
-    const handleKeyUp = useCallback((e) => {
-        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
-        e.preventDefault();
-        if (arrowKeyProcessingRef.current === e.key) {
-            arrowKeyProcessingRef.current = null;
-        }
-    }, []);
-
-    useEffect(() => {
-        document.addEventListener('keyup', handleKeyUp);
-        return () => document.removeEventListener('keyup', handleKeyUp);
-    }, [handleKeyUp]);
 
     useEffect(() => {
         const gameInterval = setInterval(moveSnake, SPEED_SETTINGS[gameSpeed].interval);
@@ -245,65 +238,73 @@ const SnakeGame = () => {
             )}
 
             {/* Game Board */}
-            <div className="relative mb-6">
-                <div
-                    className="grid gap-0 border-4 border-lime-400 bg-gray-900 shadow-2xl"
-                    style={{
-                        gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
-                        imageRendering: 'pixelated'
-                    }}
-                >
-                    {renderGrid()}
+            <SwipeHandler
+                onSwipeUp={() => changeDirection('ArrowUp')}
+                onSwipeDown={() => changeDirection('ArrowDown')}
+                onSwipeLeft={() => changeDirection('ArrowLeft')}
+                onSwipeRight={() => changeDirection('ArrowRight')}
+                onDoubleTap={togglePause}
+            >
+                <div className="relative mb-6">
+                    <div
+                        className="grid gap-0 border-4 border-lime-400 bg-gray-900 shadow-2xl"
+                        style={{
+                            gridTemplateColumns: `repeat(${GRID_SIZE}, 1fr)`,
+                            imageRendering: 'pixelated'
+                        }}
+                    >
+                        {renderGrid()}
+                    </div>
+
+                    {/* Pause Overlay */}
+                    {gameState === 'paused' && (
+                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                            <div className="text-center">
+                                <div className="text-3xl font-bold text-yellow-400 mb-2">PAUSED</div>
+                                <div className="text-lg text-white mb-4">Press SPACE or click PAUSE to resume</div>
+                                <button
+                                    onClick={togglePause}
+                                    className="px-6 py-2 bg-yellow-400 text-black font-bold hover:bg-yellow-300 transition-colors border-2 border-yellow-600 shadow-lg"
+                                >
+                                    RESUME
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Game Over Overlay */}
+                    {gameState === 'gameOver' && (
+                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                            <div className="text-center">
+                                <div className="text-3xl font-bold text-red-500 mb-2">GAME OVER</div>
+                                <div className="text-lg text-white mb-4">Final Score: {score}</div>
+                                <button
+                                    onClick={startGame}
+                                    className="px-6 py-2 bg-lime-400 text-black font-bold hover:bg-lime-300 transition-colors border-2 border-lime-600 shadow-lg"
+                                >
+                                    PLAY AGAIN
+                                </button>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Start Screen */}
+                    {gameState === 'waiting' && (
+                        <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                            <div className="text-center">
+                                <div className="text-2xl font-bold text-lime-400 mb-4">READY TO PLAY?</div>
+                                <button
+                                    onClick={startGame}
+                                    className="px-6 py-2 bg-lime-400 text-black font-bold hover:bg-lime-300 transition-colors border-2 border-lime-600 shadow-lg mb-4"
+                                >
+                                    START GAME
+                                </button>
+                                <div className="text-sm text-gray-400">Use arrow keys to control the snake</div>
+                            </div>
+                        </div>
+                    )}
                 </div>
-
-                {/* Pause Overlay */}
-                {gameState === 'paused' && (
-                    <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-yellow-400 mb-2">PAUSED</div>
-                            <div className="text-lg text-white mb-4">Press SPACE or click PAUSE to resume</div>
-                            <button
-                                onClick={togglePause}
-                                className="px-6 py-2 bg-yellow-400 text-black font-bold hover:bg-yellow-300 transition-colors border-2 border-yellow-600 shadow-lg"
-                            >
-                                RESUME
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Game Over Overlay */}
-                {gameState === 'gameOver' && (
-                    <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="text-3xl font-bold text-red-500 mb-2">GAME OVER</div>
-                            <div className="text-lg text-white mb-4">Final Score: {score}</div>
-                            <button
-                                onClick={startGame}
-                                className="px-6 py-2 bg-lime-400 text-black font-bold hover:bg-lime-300 transition-colors border-2 border-lime-600 shadow-lg"
-                            >
-                                PLAY AGAIN
-                            </button>
-                        </div>
-                    </div>
-                )}
-
-                {/* Start Screen */}
-                {gameState === 'waiting' && (
-                    <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
-                        <div className="text-center">
-                            <div className="text-2xl font-bold text-lime-400 mb-4">READY TO PLAY?</div>
-                            <button
-                                onClick={startGame}
-                                className="px-6 py-2 bg-lime-400 text-black font-bold hover:bg-lime-300 transition-colors border-2 border-lime-600 shadow-lg mb-4"
-                            >
-                                START GAME
-                            </button>
-                            <div className="text-sm text-gray-400">Use arrow keys to control the snake</div>
-                        </div>
-                    </div>
-                )}
-            </div>
+            </SwipeHandler>
 
             {/* Controls */}
             <div className="text-center">
