@@ -195,9 +195,12 @@ const SnakeGame = () => {
              style={{fontFamily: 'monospace'}}>
 
             {/* Title */}
-            <h1 className="text-4xl font-bold mb-4 text-lime-400 tracking-wider pixel-text">
-                🐍 SNAKE
-            </h1>
+            <a href="https://github.com/NuclearMissile/react-snake" target="_blank" rel="noreferrer noopener">
+                <h1 className="text-4xl font-bold mb-4 text-lime-400 tracking-wider pixel-text">
+                    🐍 SNAKE
+                </h1>
+            </a>
+
 
             {/* Score Display */}
             <div className="flex gap-8 mb-4 text-xl">
