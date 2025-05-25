@@ -1,4 +1,4 @@
-import React, {useCallback, useEffect, useState} from 'react';
+import {useCallback, useEffect, useRef, useState} from 'react';
 
 const GRID_SIZE = 20;
 const INITIAL_SNAKE = [{x: 10, y: 10}];
@@ -16,12 +16,13 @@ const SnakeGame = () => {
     const [snake, setSnake] = useState(INITIAL_SNAKE);
     const [food, setFood] = useState(INITIAL_FOOD);
     const [direction, setDirection] = useState(INITIAL_DIRECTION);
-    const [gameOver, setGameOver] = useState(false);
     const [score, setScore] = useState(0);
-    const [isPlaying, setIsPlaying] = useState(false);
     const [highScore, setHighScore] = useState(0);
     const [gameSpeed, setGameSpeed] = useState('normal');
     const [showSettings, setShowSettings] = useState(false);
+    const [gameState, setGameState] = useState('waiting') // waiting, playing, paused, gameOver
+
+    const arrowKeyProcessingRef = useRef(null);
 
     const generateFood = useCallback(() => {
         let newFood;
@@ -38,18 +39,26 @@ const SnakeGame = () => {
         setSnake(INITIAL_SNAKE);
         setFood(INITIAL_FOOD);
         setDirection(INITIAL_DIRECTION);
-        setGameOver(false);
         setScore(0);
-        setIsPlaying(false);
+        setGameState('waiting');
     };
 
     const startGame = () => {
         resetGame();
-        setIsPlaying(true);
+        setGameState('playing');
     };
 
+    const togglePause = useCallback(() => {
+        if (gameState === 'playing') {
+            setGameState('paused');
+        }
+        if (gameState === 'paused') {
+            setGameState('playing');
+        }
+    }, [gameState]);
+
     const moveSnake = useCallback(() => {
-        if (!isPlaying || gameOver) return;
+        if (gameState !== 'playing') return;
 
         setSnake(currentSnake => {
             const newSnake = [...currentSnake];
@@ -60,8 +69,7 @@ const SnakeGame = () => {
 
             // Check wall collision
             if (head.x < 0 || head.x >= GRID_SIZE || head.y < 0 || head.y >= GRID_SIZE) {
-                setGameOver(true);
-                setIsPlaying(false);
+                setGameState('gameOver');
                 if (score > highScore) {
                     setHighScore(score);
                 }
@@ -70,8 +78,7 @@ const SnakeGame = () => {
 
             // Check self collision
             if (newSnake.some(segment => segment.x === head.x && segment.y === head.y)) {
-                setGameOver(true);
-                setIsPlaying(false);
+                setGameState('gameOver');
                 if (score > highScore) {
                     setHighScore(score);
                 }
@@ -90,11 +97,22 @@ const SnakeGame = () => {
 
             return newSnake;
         });
-    }, [direction, isPlaying, gameOver, food, score, highScore, generateFood]);
+    }, [gameState, direction.x, direction.y, food.x, food.y, score, highScore, generateFood]);
 
-    const handleKeyPress = useCallback((e) => {
-        if (!isPlaying) return;
+    const handleKeyDown = useCallback((e) => {
+        // Handle pause with spacebar
+        if (e.key === ' ' || e.key === 'Spacebar') {
+            e.preventDefault();
+            togglePause();
+            return;
+        }
 
+        if (gameState !== 'playing') return;
+
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        if (arrowKeyProcessingRef.current) return;
+        arrowKeyProcessingRef.current = e.key;
         switch (e.key) {
             case 'ArrowUp':
                 if (direction.y !== 1) setDirection({x: 0, y: -1});
@@ -109,12 +127,25 @@ const SnakeGame = () => {
                 if (direction.x !== -1) setDirection({x: 1, y: 0});
                 break;
         }
-    }, [direction, isPlaying]);
+    }, [direction.x, direction.y, gameState, togglePause]);
 
     useEffect(() => {
-        document.addEventListener('keydown', handleKeyPress);
-        return () => document.removeEventListener('keydown', handleKeyPress);
-    }, [handleKeyPress]);
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, [handleKeyDown]);
+
+    const handleKeyUp = useCallback((e) => {
+        if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown' && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') return;
+        e.preventDefault();
+        if (arrowKeyProcessingRef.current === e.key) {
+            arrowKeyProcessingRef.current = null;
+        }
+    }, []);
+
+    useEffect(() => {
+        document.addEventListener('keyup', handleKeyUp);
+        return () => document.removeEventListener('keyup', handleKeyUp);
+    }, [handleKeyUp]);
 
     useEffect(() => {
         const gameInterval = setInterval(moveSnake, SPEED_SETTINGS[gameSpeed].interval);
@@ -170,7 +201,7 @@ const SnakeGame = () => {
 
             {/* Title */}
             <h1 className="text-4xl font-bold mb-4 text-lime-400 tracking-wider pixel-text">
-                🐍 SNAKE GAME
+                🐍 SNAKE
             </h1>
 
             {/* Score Display */}
@@ -187,7 +218,6 @@ const SnakeGame = () => {
             <button
                 onClick={() => setShowSettings(!showSettings)}
                 className="mb-4 px-4 py-2 bg-gray-700 text-white border-2 border-gray-500 hover:bg-gray-600 transition-colors"
-                disabled={isPlaying}
             >
                 SETTINGS
             </button>
@@ -226,8 +256,24 @@ const SnakeGame = () => {
                     {renderGrid()}
                 </div>
 
+                {/* Pause Overlay */}
+                {gameState === 'paused' && (
+                    <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
+                        <div className="text-center">
+                            <div className="text-3xl font-bold text-yellow-400 mb-2">PAUSED</div>
+                            <div className="text-lg text-white mb-4">Press SPACE or click PAUSE to resume</div>
+                            <button
+                                onClick={togglePause}
+                                className="px-6 py-2 bg-yellow-400 text-black font-bold hover:bg-yellow-300 transition-colors border-2 border-yellow-600 shadow-lg"
+                            >
+                                RESUME
+                            </button>
+                        </div>
+                    </div>
+                )}
+
                 {/* Game Over Overlay */}
-                {gameOver && (
+                {gameState === 'gameOver' && (
                     <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
                         <div className="text-center">
                             <div className="text-3xl font-bold text-red-500 mb-2">GAME OVER</div>
@@ -243,7 +289,7 @@ const SnakeGame = () => {
                 )}
 
                 {/* Start Screen */}
-                {!isPlaying && !gameOver && (
+                {gameState === 'waiting' && (
                     <div className="absolute inset-0 bg-black/75 flex items-center justify-center">
                         <div className="text-center">
                             <div className="text-2xl font-bold text-lime-400 mb-4">READY TO PLAY?</div>
@@ -261,12 +307,29 @@ const SnakeGame = () => {
 
             {/* Controls */}
             <div className="text-center">
-                <button
-                    onClick={resetGame}
-                    className="px-4 py-2 bg-gray-700 text-white border-2 border-gray-500 hover:bg-gray-600 transition-colors mr-2"
-                >
-                    RESET
-                </button>
+                <div className="text-gray-400 mb-4">
+                    Use <span className="text-white">ARROW KEYS</span> to move • Press <span
+                    className="text-white">SPACE</span> to pause
+                </div>
+                <div className="flex gap-2 justify-center">
+                    <button
+                        onClick={togglePause}
+                        className={`px-4 py-2 border-2 font-bold transition-colors ${
+                            gameState === 'playing' ? 'bg-blue-600 text-white border-blue-800 hover:bg-blue-500' :
+                                gameState === 'paused' ? 'bg-yellow-400 text-black border-yellow-600 hover:bg-yellow-300' :
+                                    'bg-gray-600 text-gray-400 border-gray-700 cursor-not-allowed'
+                        }`}
+                        disabled={gameState === 'waiting' || gameState === 'gameOver'}
+                    >
+                        {gameState === 'paused' ? 'RESUME' : 'PAUSE'}
+                    </button>
+                    <button
+                        onClick={resetGame}
+                        className="px-4 py-2 bg-gray-700 text-white border-2 border-gray-500 hover:bg-gray-600 transition-colors"
+                    >
+                        RESET
+                    </button>
+                </div>
             </div>
         </div>
     );
