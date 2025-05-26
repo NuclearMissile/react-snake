@@ -20,7 +20,6 @@ const SnakeGame = () => {
     const [score, setScore] = useState(0);
     const [highScore, setHighScore] = useState(0);
     const [gameSpeed, setGameSpeed] = useState('normal');
-    const [showSettings, setShowSettings] = useState(false);
     const [gameState, setGameState] = useState('waiting') // waiting, playing, paused, gameOver
 
     const arrowKeyProcessingRef = useRef(null);
@@ -201,46 +200,33 @@ const SnakeGame = () => {
                 </h1>
             </a>
 
-
             {/* Score Display */}
             <div className="flex gap-8 mb-4 text-xl">
                 <div className="text-white">SCORE: <span
                     className="text-lime-400">{score.toString().padStart(4, '0')}</span></div>
                 <div className="text-white">HIGH: <span
                     className="text-yellow-400">{highScore.toString().padStart(4, '0')}</span></div>
-                <div className="text-white">SPEED: <span
-                    className="text-cyan-400">{SPEED_SETTINGS[gameSpeed].name}</span></div>
             </div>
 
-            {/* Settings Button */}
-            <button
-                onClick={() => setShowSettings(!showSettings)}
-                className="mb-4 px-4 py-2 bg-gray-700 text-white border-2 border-gray-500 hover:bg-gray-600 transition-colors"
-            >
-                SETTINGS
-            </button>
-
             {/* Settings Panel */}
-            {showSettings && (
-                <div className="mb-4 p-4 bg-gray-800 border-2 border-gray-600 rounded">
-                    <div className="text-center text-white mb-3 font-bold">GAME SPEED</div>
-                    <div className="flex gap-2 justify-center">
-                        {Object.entries(SPEED_SETTINGS).map(([key, setting]) => (
-                            <button
-                                key={key}
-                                onClick={() => setGameSpeed(key)}
-                                className={`px-3 py-1 border-2 font-bold transition-colors ${
-                                    gameSpeed === key
-                                        ? 'bg-lime-400 text-black border-lime-600'
-                                        : 'bg-gray-700 text-white border-gray-500 hover:bg-gray-600'
-                                }`}
-                            >
-                                {setting.name}
-                            </button>
-                        ))}
-                    </div>
+            <div className="mb-4 p-4 bg-gray-800 border-2 border-gray-600 rounded">
+                <div className="text-center text-white mb-3 font-bold">GAME SPEED</div>
+                <div className="flex gap-2 justify-center">
+                    {Object.entries(SPEED_SETTINGS).map(([key, setting]) => (
+                        <button
+                            key={key}
+                            onClick={() => setGameSpeed(key)}
+                            className={`px-3 py-1 border-2 font-bold transition-colors ${
+                                gameSpeed === key ?
+                                    'bg-lime-400 text-black border-lime-600' :
+                                    'bg-gray-700 text-white border-gray-500 hover:bg-gray-600'
+                            }`}
+                        >
+                            {setting.name}
+                        </button>
+                    ))}
                 </div>
-            )}
+            </div>
 
             {/* Game Board */}
             <SwipeHandler
@@ -306,10 +292,12 @@ const SnakeGame = () => {
             {/* Controls */}
             <div className="text-center">
                 <div className="text-gray-400 mb">
-                    PC: <span className="text-white">ARROW KEYS</span> to move • <span className="text-white">SPACE</span> to pause
+                    PC: <span className="text-white">ARROW KEYS</span> to move • <span
+                    className="text-white">SPACE</span> to pause
                 </div>
                 <div className="text-gray-400 mb-2">
-                    Mobile: <span className="text-white">SWIPE</span> to move • <span className="text-white">DOUBLE TAP</span> to pause
+                    Mobile: <span className="text-white">SWIPE</span> to move • <span
+                    className="text-white">DOUBLE TAP</span> to pause
                 </div>
                 <div className="flex gap-2 justify-center">
                     <button
