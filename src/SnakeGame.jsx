@@ -196,7 +196,7 @@ const SnakeGame = () => {
             {/* Title */}
             <a href="https://github.com/NuclearMissile/react-snake" target="_blank" rel="noreferrer noopener">
                 <h1 className="text-4xl font-bold mb-4 text-lime-400 tracking-wider pixel-text">
-                    🐍 SNAKE
+                    🐍SNAKE
                 </h1>
             </a>
 
